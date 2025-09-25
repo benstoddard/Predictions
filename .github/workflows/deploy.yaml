@@ -1,7 +1,7 @@
 name: build-and-deploy
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
 
 env:
   REGISTRY: localhost:5000          # if k3s pulls from a remote builder, use its IP:5000
