@@ -1,0 +1,52 @@
+name: build-and-deploy
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: localhost:5000          # if k3s pulls from a remote builder, use its IP:5000
+  IMAGE_NAME: Predictions
+  # Set to your cluster arch: linux/amd64, linux/arm64, or linux/arm/v7 (Odroid XU4)
+  PLATFORM: linux/arm/v7
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to local registry
+        if: env.REGISTRY != ''
+        run: |
+          echo "Logging into $REGISTRY if required (no-op for insecure local registry)"
+          # For insecure local registry, login may be unnecessary. If needed, add:
+          # echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USERNAME" --password-stdin
+
+      - name: Build and push image
+        run: |
+          REPO_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "Building and pushing $REGISTRY/$REPO_LOWER:${GITHUB_SHA::7}"
+          docker buildx build \
+            --platform "$PLATFORM" \
+            -t "$REGISTRY/$REPO_LOWER:${GITHUB_SHA::7}" \
+            -t "$REGISTRY/$REPO_LOWER:latest" \
+            --push .
+
+      # Ensure kubectl can reach your cluster (runner has ~/.kube/config)
+      - name: Rollout update
+        run: |
+          REPO_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          DEPLOYMENT_NAME=$REPO_LOWER
+          # Option A: update an existing Deployment image
+          kubectl set image deploy/$DEPLOYMENT_NAME $DEPLOYMENT_NAME=$REGISTRY/$REPO_LOWER:${GITHUB_SHA::7} --record || true
+          # Option B: apply your k8s manifests
+          # kubectl apply -f k8s/
+          kubectl rollout status deploy/$DEPLOYMENT_NAME --timeout=120s || true
+          kubectl get pods -o wide
+
