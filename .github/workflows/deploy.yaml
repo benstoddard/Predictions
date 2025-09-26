@@ -16,6 +16,10 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: DNS check
+        run: |
+          getent hosts raw.githubusercontent.com || true
+          curl -I https://raw.githubusercontent.com/actions/checkout/v4/action.yml || true
       - uses: actions/checkout@v4
 
       - uses: docker/setup-qemu-action@v3
