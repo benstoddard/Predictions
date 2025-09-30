@@ -9,7 +9,7 @@ env:
   # Set to your cluster arch: linux/amd64, linux/arm64, or linux/arm/v7 (Odroid XU4)
   PLATFORM: linux/arm/v7
   BUILDX_CACHE: ${{ github.workspace }}/.buildx-cache
-  
+
 
 jobs:
   deploy:
@@ -37,15 +37,16 @@ jobs:
       - name: Ensure buildx and cache dir
         run: |
           docker buildx version >/dev/null 2>&1 || docker buildx create --name localbuilder --use
-          sudo mkdir -p "$BUILDX_CACHE"
-          sudo chown $USER:$USER "$BUILDX_CACHE"
+          mkdir -p "$BUILDX_CACHE"
 
-      - name: Build and push image (cached)
+      - name: Build and push image (with cache)
         run: |
           REPO_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          CACHE_FROM=""
+          [ -f "$BUILDX_CACHE/index.json" ] && CACHE_FROM="--cache-from type=local,src=$BUILDX_CACHE"
           docker buildx build \
             --platform "$PLATFORM" \
-            --cache-from type=local,src="$BUILDX_CACHE" \
+            $CACHE_FROM \
             --cache-to type=local,dest="$BUILDX_CACHE",mode=max \
             --provenance=false \
             -t "$REGISTRY/$REPO_LOWER:${GITHUB_SHA::7}" \
