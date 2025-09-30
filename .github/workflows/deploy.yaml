@@ -8,7 +8,7 @@ env:
   IMAGE_NAME: Predictions
   # Set to your cluster arch: linux/amd64, linux/arm64, or linux/arm/v7 (Odroid XU4)
   PLATFORM: linux/arm/v7
-  BUILDX_CACHE: /var/lib/buildx-cache
+  BUILDX_CACHE: ${{ github.workspace }}/.buildx-cache
 
 jobs:
   deploy:
