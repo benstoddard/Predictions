@@ -4,7 +4,7 @@ on:
     branches: [ master ]
 
 env:
-  REGISTRY: localhost:5000          # if k3s pulls from a remote builder, use its IP:5000
+  REGISTRY: 127.0.0.1:5000          # if k3s pulls from a remote builder, use its IP:5000
   IMAGE_NAME: Predictions
   # Set to your cluster arch: linux/amd64, linux/arm64, or linux/arm/v7 (Odroid XU4)
   PLATFORM: linux/arm/v7
