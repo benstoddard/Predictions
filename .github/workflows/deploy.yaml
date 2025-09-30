@@ -8,6 +8,7 @@ env:
   IMAGE_NAME: Predictions
   # Set to your cluster arch: linux/amd64, linux/arm64, or linux/arm/v7 (Odroid XU4)
   PLATFORM: linux/arm/v7
+  BUILDX_CACHE: /var/lib/buildx-cache
 
 jobs:
   deploy:
@@ -32,12 +33,20 @@ jobs:
           # For insecure local registry, login may be unnecessary. If needed, add:
           # echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USERNAME" --password-stdin
 
-      - name: Build and push image
+      - name: Ensure buildx and cache dir
+        run: |
+          docker buildx version >/dev/null 2>&1 || docker buildx create --name localbuilder --use
+          sudo mkdir -p "$BUILDX_CACHE"
+          sudo chown $USER:$USER "$BUILDX_CACHE"
+
+      - name: Build and push image (cached)
         run: |
           REPO_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
-          echo "Building and pushing $REGISTRY/$REPO_LOWER:${GITHUB_SHA::7}"
           docker buildx build \
             --platform "$PLATFORM" \
+            --cache-from type=local,src="$BUILDX_CACHE" \
+            --cache-to type=local,dest="$BUILDX_CACHE",mode=max \
+            --provenance=false \
             -t "$REGISTRY/$REPO_LOWER:${GITHUB_SHA::7}" \
             -t "$REGISTRY/$REPO_LOWER:latest" \
             --push .

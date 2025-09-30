@@ -1,15 +1,15 @@
+# syntax=docker/dockerfile:1.6
 FROM python:3.11-slim
 
 # Avoid interactive tzdata prompts and set no bytecode writes
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && pip install -r requirements.txt
 
 COPY app ./app
 
